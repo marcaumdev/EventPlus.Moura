@@ -1,4 +1,5 @@
-﻿using EventPlus.WebAPI.Interfaces;
+﻿using EventPlus.WebAPI.DTO;
+using EventPlus.WebAPI.Interfaces;
 using EventPlus.WebAPI.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -59,13 +60,18 @@ public class TipoEventoController : ControllerBase
     /// <param name="tipoEvento">Tipo de evento a ser cadastrado</param>
     /// <returns>Status Code 201 e o tipo de evento a ser cadastrado</returns>
     [HttpPost]
-    public IActionResult Cadastrar(TipoEvento tipoEvento)
+    public IActionResult Cadastrar(TipoEventoDTO tipoEvento)
     {
         try
         {
-            _tipoEventoRepository.Cadastrar(tipoEvento);
+            var novoTipoEvento = new TipoEvento
+            {
+                Titulo = tipoEvento.Titulo!
+            };
 
-            return StatusCode(201, tipoEvento);
+            _tipoEventoRepository.Cadastrar(novoTipoEvento);
+
+            return StatusCode(201, novoTipoEvento);
         }
         catch (Exception erro)
         {
@@ -73,6 +79,50 @@ public class TipoEventoController : ControllerBase
         }
     }
 
-    //[HttpPut("{id}")]
+    /// <summary>
+    /// Endpoint da API que faz a chamada para o método de atualizar um tipo de evento
+    /// </summary>
+    /// <param name="id">Id do tipo evento a ser atualizado</param>
+    /// <param name="tipoEvento">Tipo de evento com os dados atualizados</param>
+    /// <returns>Status Code 204 e o tipo de evento atualizado</returns>
+    [HttpPut("{id}")]
+    public IActionResult Atualizar(Guid id, TipoEventoDTO tipoEvento)
+    {
+        try
+        {
+            var tipoEventoAtualizado = new TipoEvento
+            {
+                Titulo = tipoEvento.Titulo!
+            };
+
+            _tipoEventoRepository.Atualizar(id, tipoEventoAtualizado);
+
+            return StatusCode(204, tipoEventoAtualizado);
+        }
+        catch (Exception erro)
+        {
+            return BadRequest(erro.Message);
+        }
+    }
+
+    /// <summary>
+    /// Endpoint da API que faz a chamada para o método de deletar um tipo de evento
+    /// </summary>
+    /// <param name="id">Id do tipo do evento a ser excluído</param>
+    /// <returns>Status code 204</returns>
+    [HttpDelete("{id}")]
+    public IActionResult Delete(Guid id)
+    {
+        try
+        {
+            _tipoEventoRepository.Deletar(id);
+
+            return NoContent();
+        }
+        catch (Exception erro)
+        {
+            return BadRequest(erro.Message);
+        }
+    }
 
 }
