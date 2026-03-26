@@ -1,7 +1,9 @@
+using Azure.AI.ContentSafety;
 using EventPlus.WebAPI.BdContextEvent;
 using EventPlus.WebAPI.Interfaces;
 using EventPlus.WebAPI.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,19 @@ builder.Services.AddDbContext<EventContext>(options => options.UseSqlServer(buil
 
 //2. Registrar as Repositories (Injeção de Dependência)
 builder.Services.AddScoped<ITipoEventoRepository, TipoEventoRepository>();
+builder.Services.AddScoped<ITipoUsuarioRepository, TipoUsuarioRepository>();
+builder.Services.AddScoped<IInstituicaoRepository, InstituicaoRepository>();
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddScoped<IEventoRepository, EventoRepository>();
+builder.Services.AddScoped<IComentarioEventoRepository, ComentarioEventoRepository>();
+builder.Services.AddScoped<IPresencaRepository, PresencaRepository>();
+
+//Configuração do Azure Content Safety
+var endpoint = "";
+var apiKey = "";
+
+var client = new ContentSafetyClient(new Uri(endpoint), new Azure.AzureKeyCredential(apiKey));
+builder.Services.AddSingleton(client);
 
 //Adiciona Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -51,6 +66,39 @@ builder.Services.AddSwaggerGen(options =>
     {
         [new OpenApiSecuritySchemeReference("Bearer", document)] = Array.Empty<string>().ToList()
     });
+});
+
+//Adiciona o serviço de JWT Bearer
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultChallengeScheme = "JwtBearer";
+    options.DefaultAuthenticateScheme = "JwtBearer";
+})
+.AddJwtBearer("JwtBearer", options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        //valida quem está solicitando
+        ValidateIssuer = true,
+
+        //valida quem está recebendo
+        ValidateAudience = true,
+
+        //define se o tempo de expiração será validado
+        ValidateLifetime = true,
+
+        //forma de criptografia e validaa chave de autenticação
+        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("eventos-chave-autenticacao-webapi-dev")),
+
+        //valida o tempo de expiração do token
+        ClockSkew = TimeSpan.FromMinutes(5),
+
+        //valida de onde está vindo
+        ValidIssuer = "webapi.event+",
+
+        ValidAudience = "webapi.event+"
+
+    };
 });
 
 builder.Services.AddControllers();
